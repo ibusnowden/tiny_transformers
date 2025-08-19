@@ -1,1 +1,1 @@
-# Encoder-only model
+# Decoder-only model
