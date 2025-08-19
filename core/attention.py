@@ -1,47 +1,37 @@
-# Multi-head self-attention
+# core/attention.py
 import numpy as np
+
+def softmax(x, axis=-1):
+    exp_x = np.exp(x - np.max(x, axis=axis, keepdims=True))
+    return exp_x / np.sum(exp_x, axis=axis, keepdims=True)
 
 class MultiHeadAttention:
     def __init__(self, d_model, num_heads):
-        assert d_model % num_heads == 0
         self.d_model = d_model
         self.num_heads = num_heads
         self.d_k = d_model // num_heads
-
-        # Initialize weights for Q, K, V
-        self.W_q = np.random.randn(d_model, d_model)
-        self.W_k = np.random.randn(d_model, d_model)
-        self.W_v = np.random.randn(d_model, d_model)
-        self.W_o = np.random.randn(d_model, d_model) 
+        # Tighter initialization
+        scale = np.sqrt(d_model) * 0.1  # Reduce scale
+        self.W_q = np.random.randn(d_model, d_model) / scale
+        self.W_k = np.random.randn(d_model, d_model) / scale
+        self.W_v = np.random.randn(d_model, d_model) / scale
+        self.W_o = np.random.randn(d_model, d_model) / scale
 
     def scaled_dot_product_attention(self, Q, K, V, mask=None):
-        # Q, K, V shape: (batch, seq_len, d_k)
-        scores = np.matmul(Q, K.transpose(-2, -1)) / np.sqrt(self.d_k)
+        scores = np.matmul(Q, K.transpose(0, 1, 3, 2)) / np.sqrt(self.d_k)
         if mask is not None:
+            mask = mask[np.newaxis, np.newaxis, :, :]
             scores = scores + mask * -1e9
-        attn = np.exp(scores) / np.sum(np.exp(scores), axis=-1, keepdims=True)
-        return np.matmul(attn, V)
-    
+        attention = softmax(scores, axis=-1)
+        context = np.matmul(attention, V)
+        return context
+
     def forward(self, X, mask=None):
-        # X shape: (batch, seq_len, d_model)
-        batch, seq_len, _ = X.shape
-
-        # Linear projections
-        Q = np.matmul(X, self.W_q).reshape(batch, seq_len, self.num_heads, self.d_k)
-        K = np.matmul(X, self.W_k).reshape(batch, seq_len, self.num_heads, self.d_k)
-        V = np.matmul(X, self.W_v).reshape(batch, seq_len, self.num_heads, self.d_k)
-
-        # Transpose to (batch, num_heads, seq_len, d_k)
-        Q = Q.transpose(0, 2, 1, 3)
-        K = K.transpose(0, 2, 1, 3)
-        V = K.transpose(0, 2, 1, 3)
-
-        # Attention
-        out = self.scaled_dot_product_attention(Q, K, V, mask)
-
-        # concatenate heads and project
-        out = out.transpose(0, 2, 1, 3).reshape(batch, seq_len, self.d_model)
-        out = np.matmul(out, self.W_o)
-
+        batch, seq_len, d_model = X.shape
+        Q = np.matmul(X, self.W_q).reshape(batch, seq_len, self.num_heads, self.d_k).transpose(0, 2, 1, 3)
+        K = np.matmul(X, self.W_k).reshape(batch, seq_len, self.num_heads, self.d_k).transpose(0, 2, 1, 3)
+        V = np.matmul(X, self.W_v).reshape(batch, seq_len, self.num_heads, self.d_k).transpose(0, 2, 1, 3)
+        context = self.scaled_dot_product_attention(Q, K, V, mask)
+        context = context.transpose(0, 2, 1, 3).reshape(batch, seq_len, d_model)
+        out = np.matmul(context, self.W_o)
         return out
-        
