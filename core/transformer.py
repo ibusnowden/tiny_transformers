@@ -1,7 +1,7 @@
 # Transformer block
-from attention import MultiHeadAttention
-from norm import LayerNorm
-from ffn import FeedForward
+from .attention import MultiHeadAttention
+from .norm import LayerNorm
+from .ffn import FeedForward
 
 class TransformerBlock:
     def __init__(self, d_model, num_heads, d_ff):
