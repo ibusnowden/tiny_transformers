@@ -1,6 +1,6 @@
 # tiny_transformers
 
-Project: Nano-Transformers
+Project: tiny_transformers
 
 Objective: Implement a lightweight, modular transformer library in pure Python (with optional PyTorch for tensor ops) that covers core models (e.g., BERT, GPT) for educational purposes. No external dependencies beyond PyTorch (optional). Focus on readability, minimalism, and understanding.
 
