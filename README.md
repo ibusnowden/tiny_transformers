@@ -1,4 +1,4 @@
-# nano_transformers
+# tiny_transformers
 
 Project: Nano-Transformers
 
